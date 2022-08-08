@@ -23,7 +23,7 @@ spec:
       containers:      
       - name: cmobile
         image: 112.74.178.133:8082/cmobile/tank-boot-cmobile:uat06100933
-#        args: ["--spring.profiles.active=APP_ENV"]
+        args: ["--spring.profiles.active=prod"]
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8308
