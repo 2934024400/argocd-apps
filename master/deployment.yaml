@@ -1,0 +1,135 @@
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  name: cmobile
+  namespace: apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      project: cmobile
+      app: cmobile
+  strategy:    
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        project: cmobile
+        app: cmobile
+    spec:
+      containers:      
+      - name: cmobile
+        image: 112.74.178.133:8082/cmobile/tank-boot-cmobile:uat06100933
+#        args: ["--spring.profiles.active=APP_ENV"]
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8308
+          name: api
+          protocol: TCP
+
+        env:
+          - name: REDIS_HOST
+            valueFrom:              
+              configMapKeyRef: 
+                name: data-config  
+                key: redis_host
+          - name: REDIS_PORT
+            valueFrom:              
+              configMapKeyRef: 
+                name: data-config
+                key: redis_port 
+          - name: REDIS_PASSWORD
+            valueFrom:              
+              configMapKeyRef: 
+                name: data-config
+                key: redis_password  
+          - name: REDIS_DATABASE
+            valueFrom:
+              configMapKeyRef:
+                name: data-config
+                key: redis_database
+          - name: MYSQL_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: data-config
+                key: mysql_host
+
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - sleep
+              - "5"        
+          
+        livenessProbe:
+          failureThreshold: 3
+          tcpSocket:
+            port: api          
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+      
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /api/v1/template/list
+            port: api
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+          
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+          requests:
+            cpu: 200m
+            memory: 200Mi
+
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities: {}
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: false
+          runAsUser: 0
+        workingDir: /app
+        volumeMounts:
+        - name: date-config
+          mountPath: /etc/localtime
+
+      volumes:
+        - name: date-config
+          hostPath:
+            path: /etc/localtime
+      imagePullSecrets:
+      - name: harbor
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-cmobile
+  namespace: apps
+  labels:
+    project: cmobile
+    app: cmobile
+spec:
+  selector:
+    project: cmobile
+    app: cmobile
+  ports:
+  - name: api
+    port: 80
+    targetPort: 8308
+
+
