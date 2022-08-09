@@ -4,7 +4,7 @@ metadata:
   name: cmobile
   namespace: apps
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       project: cmobile
@@ -130,6 +130,6 @@ spec:
   ports:
   - name: api
     port: 80
-    targetPort: 8308
+    targetPort: 8309
 
 
