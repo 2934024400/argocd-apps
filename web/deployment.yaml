@@ -1,0 +1,111 @@
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  name: web
+  namespace: apps
+spec:
+  replicas: 1
+  selector:
+     matchLabels:
+       project: web
+       app: web
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        project: web
+        app: web
+    spec:
+      containers:
+      - name: web
+        image: 112.74.178.133:8082/cmobile/cmobile-web:1.0
+        imagePullPolicy: IfNotPresent
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - sleep
+              - "5"        
+        ports:
+        - containerPort: 80
+          name: web
+          protocol: TCP
+
+        livenessProbe:
+          failureThreshold: 3
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 10
+          
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /index.html
+            port: 80
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 10
+
+        resources:
+          limits:
+            cpu: 500m
+            memory: 500Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities: {}
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: false
+          runAsUser: 0
+        workingDir: /etc/nginx/
+        volumeMounts:
+        - name: date-config
+          mountPath: /etc/localtime
+        - name: nginx-vhosts          
+          mountPath: /etc/nginx/conf.d/cmobile.conf        
+          subPath: cmobile.conf
+
+      volumes:
+        - name: date-config
+          hostPath:
+            path: /etc/localtime
+        - name: nginx-vhosts          
+          configMap:            
+            defaultMode: 420            
+            name: nginx-vhosts
+      imagePullSecrets:
+      - name: harbor
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: apps
+  labels:
+    project: web
+    app: web
+spec:
+  selector:
+    project: web
+    app: web
+  ports:
+  - name: web
+    port: 80
+    targetPort: 80
