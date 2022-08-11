@@ -134,5 +134,4 @@ spec:
   tls:
     - secretName: wszn-ssl
       hosts:
-        - cmobile-uat.wszn.top
-~                             
+        - cmobile-uat.wszn.top                            
